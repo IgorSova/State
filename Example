@@ -1,0 +1,39 @@
+let
+    example = Table.FromRecords({
+
+        // Employee 1 был принят в компанию и потом уволился
+        [Employee = "Employee 1", Date in = #date(2023, 1, 1), Date exit = #date(2023, 6, 30)],
+
+        // Employee 2 был принят в компанию и не увольнялся
+        [Employee = "Employee 2", Date in = #date(2023, 7, 10), Date exit = null],
+
+        // Employee 3 был принят в компанию, уволился и вернулся через 10 дней после увольнения, потом уволился        
+        [Employee = "Employee 3", Date in = #date(2023, 1, 1), Date exit = #date(2023, 6, 30)],
+        [Employee = "Employee 3", Date in = #date(2023, 7, 10), Date exit = #date(2023, 10, 31)],
+
+        // Employee 4 был принят в компанию, уволился и вернулся через 10 дней после увольнения и больше не увольнялся
+        [Employee = "Employee 4", Date in = #date(2023, 1, 1), Date exit = #date(2023, 6, 30)],
+        [Employee = "Employee 4", Date in = #date(2023, 7, 10), Date exit =  null],
+
+        // Employee 5 был принят в компанию, уволился и вернулся через месяц после увольнения и больше не увольнялся
+        [Employee = "Employee 5", Date in = #date(2023, 1, 1), Date exit = #date(2023, 6, 30)],
+        [Employee = "Employee 5", Date in = #date(2023, 8, 1), Date exit = null],
+
+        // Employee 6 был принят в компанию, уволился и вернулся через месяц после увольнения и снова уволился
+        [Employee = "Employee 6", Date in = #date(2023, 1, 1), Date exit = #date(2023, 6, 30)],
+        [Employee = "Employee 6", Date in = #date(2023, 8, 1), Date exit = #date(2023, 10, 30)]
+
+        }),
+  function = fn_state(example, 14),
+  result = Table.FromRecords({
+        [Employee = "Employee 1", Date in = #date(2023, 1, 1), Date exit = #date(2023, 6, 30)],
+        [Employee = "Employee 2", Date in = #date(2023, 7, 10), Date exit = null],
+        [Employee = "Employee 3", Date in = #date(2023, 1, 1), Date exit =#date(2023, 10, 31)],
+        [Employee = "Employee 4", Date in = #date(2023, 1, 1), Date exit = null],
+        [Employee = "Employee 5", Date in = #date(2023, 1, 1), Date exit = #date(2023, 6, 30)],
+        [Employee = "Employee 5", Date in = #date(2023, 8, 1), Date exit = null],
+        [Employee = "Employee 6", Date in = #date(2023, 1, 1), Date exit = #date(2023, 6, 30)],
+        [Employee = "Employee 6", Date in = #date(2023, 8, 1), Date exit = #date(2023, 10, 30)]
+        })
+in
+    result
