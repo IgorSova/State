@@ -1,0 +1,8 @@
+let
+    start = #date(2017, 1, 1),  // Удобнее задать вручную по самой ранней дате приема в исходной таблице, чтобы не вычислять каждый раз формулами
+    end = Date.From(DateTime.LocalNow()),
+    DatesList = List.Dates(start, Duration.Days(end - start), #duration(1, 0, 0, 0)),
+    toRecords = List.Transform(DatesList, (e)=> Record.ToList([Date = e, Month = Date.MonthName(e), Year = Date.Year(e)])),
+    toTable = #table(type table [Date = date, Month = text, Year = Int64.Type], toRecords)
+in
+    toTable
