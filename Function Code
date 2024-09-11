@@ -1,0 +1,80 @@
+(state as table, returnwait as number)=>
+let
+    GroupOperators = Table.Group(state, {"Employee"}, 
+        {
+        {
+        "Maket", 
+            (tab as table)=>
+            let
+                Sort = Table.Sort(tab, {"Date in"}),  // Сортировка ASC обязательна, так как код обрабатывает все сессии последовательно в порядке хронологии
+
+/*
+Подготовка: 
+ReturnAllowedSession - определяем даты, в которые сотруднику допустимо вернуться в компанию без потери стажа для каждой сессии
+InDates - список всех дат, в которые сотрудник был трудоустроен за все время
+ReturnAllowedAll - все даты из всех ReturnAllowedSession
+InMark - если среди ReturnAllowedAll нет даты приема, считается что сотрудник принят в первый раз либо повторно, иначе текущая сессия считается продолжением предыдущей (то есть сотрудник вернулся в компанию не более, чем через returnwait дней). Результат false означает, что стаж сотрудника не прерывается на текущей сессии.
+ExitMark - если среди ReturnAllowedSession нет ни одной даты приема, значит сотрудник не возвращался в компанию в течение returnwait дней и считается уволенным. Результат false означает, что сотрудник был принят в компанию в течение returnwait дней и его стаж не прерывается.
+toRecords - преобразование таблицы в список для обработки аккумулятором
+*/
+                ReturnAllowedSession = Table.AddColumn(Sort, "Return Allowed Session", 
+                    each 
+                        if [Date exit]=null 
+                        then {} 
+                        else List.Dates([Date exit] + #duration(1, 0, 0, 0), returnwait, #duration(1, 0, 0, 0))
+                    , type list),
+                InDates = Table.AddColumn(ReturnAllowedSession, "In Dates", each tab[Date in], type list),
+                ReturnAllowedAll = Table.AddColumn(InDates, "Return Allowed All", (row)=> List.Combine(InDates[Return Allowed Session]), type list),
+                InMark = Table.AddColumn(ReturnAllowedAll, "In Mark", each not List.Contains([Return Allowed All], [Date in]), type logical),
+                ExitMark = Table.AddColumn(InMark, "Exit Mark", each List.Intersect({[Return Allowed Session],[In Dates]}) = {} and [Date exit] <> null, type logical),
+                toRecords = Table.ToRecords(ExitMark),
+/*
+Формирование списка скорректированных рабочих сессий (сессии в виде записей [Date in = date, Date exit = date]):
+Если сессия является продолжением предыдущей, то дата увольнения предыдущей сессии обновляется, 
+если сессия новая, то в список скорректированных сессий добавляется новая запись (сессия).
+index нужен для обращения к последней рабочей сессии (возможно уже скорректированной)
+*/
+                Agregate = List.Accumulate(toRecords, {toRecords{0}},(st, cur)=> 
+                    let 
+                        index = List.Count(st),
+                        last = List.Last(st),
+                        selectfunc = if last = cur or (cur[In Mark] = false) then transrec(st) else addrec(st),
+
+                        transrec = (x)=>
+                            let
+                                rec =   [
+                                        Date in = last[Date in], 
+                                        Date exit = if cur[Exit Mark] then cur[Date exit] else null
+                                        ],
+                                replacerec = List.ReplaceRange(x, index-1, 1, {rec}) 
+                            in replacerec,
+
+                        addrec = (x)=>
+                            let
+                                rec =   [
+                                        Date in = cur[Date in], 
+                                        Date exit = if cur[Exit Mark] then cur[Date exit] else null
+                                        ],
+                                addrec = List.InsertRange(x, index, {rec})
+                            in addrec
+
+                    in 
+                        selectfunc),
+/*
+Полученный список преобразуется в таблицу. 
+Все работающие сотрудники (включая тех, у кого дата окончания договора после текущей даты) в поле Date exit получают null.
+*/
+
+                toTable = #table(type table [Date in = date, Date exit = date], List.Transform(Agregate, (e)=> Record.ToList(e))),
+                FutureExits = Table.TransformColumns(toTable, {{"Date exit", (d)=> if d = null or d > Date.From(DateTime.LocalNow()) then null else d, type date}})
+            in FutureExits
+        , type table}
+        }),
+
+// Таблица разворачивается, применяются типы данных к столбцам, применяется сортировка
+
+    ExpandData = Table.ExpandTableColumn(GroupOperators, "Maket", {"Date in", "Date exit"}),
+    ColumnTypes = Table.TransformColumnTypes(ExpandData, {{"Date in", type date}, {"Date exit", type date}}),
+    Sort = Table.Sort(ColumnTypes,{{"Employee", Order.Ascending}, {"Date in", Order.Ascending}})
+in
+    Sort
