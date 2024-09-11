@@ -1,0 +1,40 @@
+<b>Среднесписочная численность за период</b>
+Average State:=
+VAR st = SELECTCOLUMNS('Calendar';"States";COUNTROWS(FILTER(State;[Date in]<=[Date] && ([Date exit]>=[Date] || ISBLANK([Date Exit])))))
+return
+SUMX(st;[States])/COUNTROWS(st)
+
+<b>Количество уволенных сотрудников за период</b>
+Fired:=
+VAR fired = SELECTCOLUMNS('Calendar';"States";COUNTROWS(FILTER(State;[Date exit]=[Date])))
+return
+SUMX(fired;[States])
+
+<b>Количество сотрудников, принятых в штат за период</b>
+Hired:=
+VAR hired = SELECTCOLUMNS('Calendar';"States";COUNTROWS(FILTER(State;[Date in]=[Date])))
+return
+SUMX(hired;[States])
+
+<b>Коэффициент текучести кадров за период</b>
+Turnover rate:=[Fired]/[Average State]
+
+<b>Валовое изменение штата за период</b>
+State increase value:=[Hired]-[Fired]
+
+<b>Относительное изменение штата за период</b>
+State increase relative:=
+VAR minimum = MINX(ALL('Calendar'[Date]);[Date])
+VAR mindate= MINX('Calendar';[Date])
+VAR maxdate = MAXX('Calendar';[Date])
+VAR minstate = CALCULATE([Average State];FILTER(ALL('Calendar'); [Date]=IF(mindate-1<minimum;minimum;mindate-1)))
+VAR maxstate = CALCULATE([Average State];FILTER('Calendar';[Date]=maxdate))
+return
+maxstate/minstate-1
+
+<b>Количество сотрудников, которые уволились в течение первых <i>per</i> дней после приема в штат</b>
+Fired Interns:=
+VAR per = 90
+VAR stag = SELECTCOLUMNS('Calendar';"States";COUNTROWS(FILTER('State';[Date In]=[Date] && NOT(ISBLANK([Date Exit]) && [Date Exit]-[Date In] < per))))
+return
+SUMX(stag;[States])
