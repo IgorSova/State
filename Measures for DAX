@@ -20,7 +20,14 @@ SUMX(hired;[States])
 Turnover rate:=[Fired]/[Average State]
 
 <b>Валовое изменение штата за период</b>
-State increase value:=[Hired]-[Fired]
+State increase value:=
+VAR minimum = MINX(ALL('Calendar'[Date]);[Date])
+VAR mindate= MINX('Calendar';[Date])
+VAR maxdate = MAXX('Calendar';[Date])
+VAR minstate = CALCULATE([Average State];FILTER(ALL('Calendar'); [Date]=IF(mindate-1<minimum;minimum;mindate-1)))
+VAR maxstate = CALCULATE([Average State];FILTER('Calendar';[Date]=maxdate))
+return
+IF(NOT(ISBLANK([Average State]));maxstate-minstate;BLANK())
 
 <b>Относительное изменение штата за период</b>
 State increase relative:=
@@ -30,7 +37,7 @@ VAR maxdate = MAXX('Calendar';[Date])
 VAR minstate = CALCULATE([Average State];FILTER(ALL('Calendar'); [Date]=IF(mindate-1<minimum;minimum;mindate-1)))
 VAR maxstate = CALCULATE([Average State];FILTER('Calendar';[Date]=maxdate))
 return
-maxstate/minstate-1
+IF(NOT(ISBLANK([Average State]));maxstate/minstate-1;BLANK())
 
 <b>Количество сотрудников, которые уволились в течение первых <i>per</i> дней после приема в штат</b>
 Fired Interns:=
