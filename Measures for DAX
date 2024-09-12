@@ -1,25 +1,25 @@
-<b>Среднесписочная численность за период</b>
+<b>Среднесписочная численность за период</b><p>
 Average State:=
 VAR st = SELECTCOLUMNS('Calendar';"States";COUNTROWS(FILTER(State;[Date in]<=[Date] && ([Date exit]>=[Date] || ISBLANK([Date Exit])))))
 return
 SUMX(st;[States])/COUNTROWS(st)
 
-<b>Количество уволенных сотрудников за период</b>
+<b>Количество уволенных сотрудников за период</b><p>
 Fired:=
 VAR fired = SELECTCOLUMNS('Calendar';"States";COUNTROWS(FILTER(State;[Date exit]=[Date])))
 return
 SUMX(fired;[States])
 
-<b>Количество сотрудников, принятых в штат за период</b>
+<b>Количество сотрудников, принятых в штат за период</b><p>
 Hired:=
 VAR hired = SELECTCOLUMNS('Calendar';"States";COUNTROWS(FILTER(State;[Date in]=[Date])))
 return
 SUMX(hired;[States])
 
-<b>Коэффициент текучести кадров за период</b>
+<b>Коэффициент текучести кадров за период</b><p>
 Turnover rate:=[Fired]/[Average State]
 
-<b>Валовое изменение штата за период</b>
+<b>Валовое изменение штата за период</b><p>
 State increase value:=
 VAR minimum = MINX(ALL('Calendar'[Date]);[Date])
 VAR mindate= MINX('Calendar';[Date])
@@ -29,7 +29,7 @@ VAR maxstate = CALCULATE([Average State];FILTER('Calendar';[Date]=maxdate))
 return
 IF(NOT(ISBLANK([Average State]));maxstate-minstate;BLANK())
 
-<b>Относительное изменение штата за период</b>
+<b>Относительное изменение штата за период</b><p>
 State increase relative:=
 VAR minimum = MINX(ALL('Calendar'[Date]);[Date])
 VAR mindate= MINX('Calendar';[Date])
@@ -39,9 +39,12 @@ VAR maxstate = CALCULATE([Average State];FILTER('Calendar';[Date]=maxdate))
 return
 IF(NOT(ISBLANK([Average State]));maxstate/minstate-1;BLANK())
 
-<b>Количество сотрудников, которые уволились в течение первых <i>per</i> дней после приема в штат</b>
+<b>Количество сотрудников, которые уволились в течение первых <i>per</i> дней после приема в штат</b><p>
 Fired Interns:=
 VAR per = 90
 VAR stag = SELECTCOLUMNS('Calendar';"States";COUNTROWS(FILTER('State';[Date In]=[Date] && NOT(ISBLANK([Date Exit]) && [Date Exit]-[Date In] < per))))
 return
 SUMX(stag;[States])
+
+<b>Доля сотрудников, которые уволились в течение первых per дней после приема в штат</b><p>
+Fired interns part:=[Fired Interns]/[Hired]
